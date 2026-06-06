@@ -1,0 +1,79 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cfs-postgres
+    environment:
+      POSTGRES_DB: cloud_file_storage
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - cfs_postgres_data:/var/lib/postgresql/data
+    networks:
+      - cfs-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cloud_file_storage"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: cfs-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - cfs_redis_data:/data
+    networks:
+      - cfs-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: cfs-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - cfs_minio_data:/data
+    networks:
+      - cfs-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mc:
+    image: minio/mc:latest
+    container_name: cfs-minio-config
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - cfs-network
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set localminio http://minio:9000 minioadmin minioadmin;
+      mc mb --ignore-existing localminio/user-files;
+      mc anonymous set public localminio/user-files;
+      exit 0;
+      "
+
+networks:
+  cfs-network:
+    driver: bridge
+
+volumes:
+  cfs_postgres_data:
+  cfs_redis_data:
+  cfs_minio_data:
