@@ -29,7 +29,7 @@ public class ExceptionsHandler {
 
     @ExceptionHandler(NoSuchKeyException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleNoSuchS3Key(NoSuchKeyException e) { return new ErrorResponse(e.getMessage()); }
+    public ErrorResponse handleNoSuchS3Key(NoSuchKeyException e) { return new ErrorResponse("Resource (S3 key) not found!"); }
 
 
     @ExceptionHandler(FileAlreadyExistsException.class)

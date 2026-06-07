@@ -16,15 +16,18 @@ import java.util.Optional;
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FileService fileService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FileService fileService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.fileService = fileService;
     }
 
     public UserResponse register(RegisterUserRequest request) {
         if (userRepository.findByUsername(request.username()).isPresent()) throw new UserExistsException("Username is already in use!");
         userRepository.save(new User(request.username(), passwordEncoder.encode(request.password())));
+        fileService.createRootFolderOnRegistration(request.username());
         return new UserResponse(request.username());
     }
 

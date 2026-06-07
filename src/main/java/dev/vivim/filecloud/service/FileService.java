@@ -259,7 +259,11 @@ public class FileService {
 
         // file
         if (!pathObj.isDirectory()) {
-            var head = s3Client.headObject(HeadObjectRequest.builder().bucket(bucketName).key(fullS3Key).build());
+            HeadObjectResponse head;
+            try {
+                head = s3Client.headObject(HeadObjectRequest.builder().bucket(bucketName).key(fullS3Key).build());
+            } catch (NoSuchKeyException ignored) { throw new ResourceNotFoundException("File '"+path+"' not found!"); }
+
             MediaType media = MediaType.parseMediaType(head.contentType());
 
             return DownloadContainer.file(out -> {
@@ -300,5 +304,31 @@ public class FileService {
             }
         }, fileName+".zip");
 
+    }
+
+    public PathResponse createDirectory(String path, String username) {
+        PathObject pathObj = pathResolver.resolve(path, username);
+        String fullS3Key = pathObj.getFullPath();
+        String folderName = pathObj.getLastSegment();
+        String parentName = pathObj.getPrefix();
+
+        if (!pathObj.isDirectory()) throw new InvalidPathException("Invalid path to new directory!");
+
+        var tryResponse = s3Client.listObjectsV2(ListObjectsV2Request.builder()
+                .bucket(bucketName).prefix(fullS3Key).maxKeys(1).build());
+        if (!tryResponse.contents().isEmpty()) throw new FileAlreadyExistsException("Directory already exists!");
+
+        var parentResponse = s3Client.listObjectsV2(ListObjectsV2Request.builder()
+                .bucket(bucketName).prefix(username+"/"+parentName).maxKeys(1).build());
+        if (parentResponse.contents().isEmpty() && !parentName.isEmpty()) throw new ResourceNotFoundException("Parent directory not exists!");
+
+        s3Client.putObject(PutObjectRequest.builder().bucket(bucketName).key(fullS3Key).build(), RequestBody.empty());
+
+        return new PathResponse(folderName, parentName, null, FileType.DIRECTORY);
+    }
+
+
+    public void createRootFolderOnRegistration(String username) {
+        s3Client.putObject(PutObjectRequest.builder().bucket(bucketName).key(username+"/").build(), RequestBody.empty());
     }
 }
