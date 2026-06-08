@@ -106,16 +106,16 @@ public class FileService {
                 String key = obj.key();
                 if (key.equals(fullS3Key)) continue;
 
-                String relativeKey = key.substring(fullS3Key.length()+1);
+                String relativeKey = key.substring(fullS3Key.length());
                 int lastSlash = relativeKey.lastIndexOf("/");
 
                 String resourceName = relativeKey.substring(lastSlash+1);
                 String folderName = lastSlash<0 ? "" : relativeKey.substring(0,lastSlash+1);
 
-                if (!key.endsWith("/") && resourceName.contains(query))
+                if (!key.endsWith("/") && resourceName.toLowerCase().contains(query.toLowerCase()))
                     result.add(new PathResponse(folderName, resourceName, obj.size(), FileType.FILE));
 
-                if (folderName.contains(query)){
+                if (folderName.toLowerCase().contains(query.toLowerCase())){
                     String[] parts = folderName.split("/");
                     if (parts.length < 1) continue;
 
@@ -124,7 +124,7 @@ public class FileService {
                         String parent = currentFolderPath.toString();
                         currentFolderPath.append(part).append("/");
 
-                        if (part.contains(query))
+                        if (part.toLowerCase().contains(query.toLowerCase()))
                             folders.add(new PathResponse(parent, part + "/", null, FileType.DIRECTORY));
                     }
                 }

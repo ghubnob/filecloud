@@ -18,8 +18,7 @@ public class MinIOPathObject implements PathObject {
         return rootFolder + "/" + path;
     }
 
-    @Override
-    public String getLastSegmentName() {
+    private String getLastSegmentName() {
         String fullPath = path;
         if (fullPath.isBlank() || "/".equals(fullPath)) return "";
 
