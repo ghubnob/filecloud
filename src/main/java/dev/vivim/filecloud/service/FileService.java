@@ -44,7 +44,7 @@ public class FileService {
         String resourceName = pathObj.getLastSegment();
         String folderName = pathObj.getPrefix();
 
-        if (path.endsWith("/")) {
+        if (path.endsWith("/")) { // directory
             ListObjectsV2Request listObjectsV2Request = ListObjectsV2Request.builder()
                     .bucket(bucketName).prefix(fullS3Key).maxKeys(1).build();
             ListObjectsV2Response response = s3Client.listObjectsV2(listObjectsV2Request);
@@ -53,11 +53,13 @@ public class FileService {
             if (!exists) throw new ResourceNotFoundException("Resource '"+path+"' not found");
             return new PathResponse(folderName, resourceName, null, FileType.DIRECTORY);
         }
-        else {
+        else { // file
             HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
                     .bucket(bucketName).key(fullS3Key).build();
-            HeadObjectResponse response = s3Client.headObject(headObjectRequest);
-            return new PathResponse(folderName, resourceName, response.contentLength(), FileType.FILE);
+            try {
+                HeadObjectResponse response = s3Client.headObject(headObjectRequest);
+                return new PathResponse(folderName, resourceName, response.contentLength(), FileType.FILE);
+            } catch (NoSuchKeyException ignored) { throw new ResourceNotFoundException("File '"+path+"' not found"); }
         }
     }
 
