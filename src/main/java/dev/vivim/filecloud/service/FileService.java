@@ -44,7 +44,7 @@ public class FileService {
         String resourceName = pathObj.getLastSegment();
         String folderName = pathObj.getPrefix();
 
-        if (path.endsWith("/")) { // directory
+        if (path.endsWith("/")) {
             ListObjectsV2Request listObjectsV2Request = ListObjectsV2Request.builder()
                     .bucket(bucketName).prefix(fullS3Key).maxKeys(1).build();
             ListObjectsV2Response response = s3Client.listObjectsV2(listObjectsV2Request);
@@ -53,7 +53,7 @@ public class FileService {
             if (!exists) throw new ResourceNotFoundException("Resource '"+path+"' not found");
             return new PathResponse(folderName, resourceName, null, FileType.DIRECTORY);
         }
-        else { // file
+        else {
             HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
                     .bucket(bucketName).key(fullS3Key).build();
             try {
@@ -173,7 +173,6 @@ public class FileService {
         String resourceName = pathObjFrom.getLastSegment();
         String folderName = pathObjFrom.getPrefix();
 
-        // folder
         if (pathObjFrom.isDirectory()) {
             var tryResponse = s3Client.listObjectsV2(ListObjectsV2Request.builder()
                     .bucket(bucketName).prefix(fullS3KeyTo).maxKeys(1).build());
@@ -201,7 +200,6 @@ public class FileService {
                     null,
                     FileType.DIRECTORY);
         }
-        // file
         else {
             HeadObjectResponse fromResponse = s3Client.headObject(HeadObjectRequest.builder().bucket(bucketName).key(fullS3KeyFrom).build());
             try {
@@ -259,7 +257,6 @@ public class FileService {
         String fullS3Key = pathObj.getFullPath();
         String fileName = pathObj.getLastSegment();
 
-        // file
         if (!pathObj.isDirectory()) {
             HeadObjectResponse head;
             try {
@@ -276,7 +273,6 @@ public class FileService {
             }, fileName, media);
         }
 
-        // folder
         ListObjectsV2Response check = s3Client.listObjectsV2(ListObjectsV2Request.builder().bucket(bucketName).prefix(fullS3Key).maxKeys(1).build());
         if (!check.hasContents()) throw new ResourceNotFoundException("Folder "+path+" not found!");
 

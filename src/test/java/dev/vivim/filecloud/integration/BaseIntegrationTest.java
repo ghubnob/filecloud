@@ -1,6 +1,7 @@
 package dev.vivim.filecloud.integration;
 
 import dev.vivim.filecloud.TestcontainersConfig;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +13,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.GenericContainer;
-import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
@@ -23,6 +23,7 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 @Transactional
 @Import(TestcontainersConfig.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Slf4j
 public abstract class BaseIntegrationTest {
     protected static final GenericContainer<?> minioContainer;
     static {
@@ -55,7 +56,7 @@ public abstract class BaseIntegrationTest {
         } catch (S3Exception e) {
             if (e.statusCode() == 404) {
                 s3Client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build());
-                System.out.println("Test bucket created - "+bucketName);
+                log.debug("Test bucket created: {}", bucketName);
             } else {
                 throw e;
             }
