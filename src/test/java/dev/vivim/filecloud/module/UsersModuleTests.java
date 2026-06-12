@@ -1,6 +1,7 @@
 package dev.vivim.filecloud.module;
 
 import dev.vivim.filecloud.dto.RegisterUserRequest;
+import dev.vivim.filecloud.events.UserRegisteredEvent;
 import dev.vivim.filecloud.exception.UserExistsException;
 import dev.vivim.filecloud.model.User;
 import dev.vivim.filecloud.repository.UserRepository;
@@ -14,7 +15,9 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
@@ -25,22 +28,27 @@ public class UsersModuleTests {
     @Mock UserRepository userRepository;
     @Mock PasswordEncoder passwordEncoder;
     @Mock FileService fileService;
+    @Mock ApplicationEventPublisher applicationEventPublisher;
     @InjectMocks UserService userService;
 
     @Captor ArgumentCaptor<User> userCaptor;
-    @Captor ArgumentCaptor<String> usernameCaptor;
+    @Captor ArgumentCaptor<UserRegisteredEvent> regEventCaptor;
 
     @Test
     void shouldCreateUserInDatabase() {
-        when(userRepository.save(any())).thenReturn(new User("testusername", "testpassword"));
+        User saved = new User("testusername", "testpassword");
+        ReflectionTestUtils.setField(saved, "id", 1);
+
+        when(userRepository.findByUsername("testusername")).thenReturn(Optional.empty());
+        when(userRepository.save(any())).thenReturn(saved);
         when(passwordEncoder.encode(any())).thenReturn("testpassword_hashed");
         userService.register(new RegisterUserRequest("testusername", "testpassword"));
 
         verify(userRepository, times(1)).save(userCaptor.capture());
         Assertions.assertEquals("testpassword_hashed", userCaptor.getValue().getPassword());
 
-        verify(fileService, times(1)).createRootFolderOnRegistration(usernameCaptor.capture());
-        Assertions.assertEquals("testusername", usernameCaptor.getValue());
+        verify(applicationEventPublisher, times(1)).publishEvent(regEventCaptor.capture());
+        Assertions.assertNotNull(regEventCaptor.getValue().userId());
     }
 
     @Test

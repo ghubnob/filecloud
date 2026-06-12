@@ -1,7 +1,7 @@
 package dev.vivim.filecloud.mock;
 
 import dev.vivim.filecloud.configuration.SecurityConfig;
-import dev.vivim.filecloud.controller.MainController;
+import dev.vivim.filecloud.controller.ResourceController;
 import dev.vivim.filecloud.service.FileService;
 import dev.vivim.filecloud.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -16,7 +16,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(MainController.class)
+@WebMvcTest(ResourceController.class)
 @Import(SecurityConfig.class)
 public class UsersTests {
     @Autowired MockMvc mockMvc;

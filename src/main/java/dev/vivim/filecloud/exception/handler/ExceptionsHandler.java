@@ -17,9 +17,14 @@ public class ExceptionsHandler {
     public ErrorResponse handleUserExists(UserExistsException e) { return new ErrorResponse(e.getMessage()); }
 
 
-    @ExceptionHandler(AuthorizationException.class)
+    @ExceptionHandler(UsernameNotFoundException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public ErrorResponse handleAuthorizationError(AuthorizationException e) { return new ErrorResponse(e.getMessage()); }
+    public ErrorResponse handleUsernameNotFound(UsernameNotFoundException e) { return new ErrorResponse(e.getMessage()); }
+
+
+    @ExceptionHandler(WrongPasswordException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ErrorResponse handleWrongPassword(WrongPasswordException e) { return new ErrorResponse(e.getMessage()); }
 
 
     @ExceptionHandler(ResourceNotFoundException.class)

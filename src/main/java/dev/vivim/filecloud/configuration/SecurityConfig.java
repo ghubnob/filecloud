@@ -1,8 +1,12 @@
 package dev.vivim.filecloud.configuration;
 
+import dev.vivim.filecloud.service.DatabaseUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -11,6 +15,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.context.DelegatingSecurityContextRepository;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 import org.springframework.web.cors.CorsConfiguration;
@@ -38,11 +46,13 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(
                         new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
                 ))
+                .securityContext(context -> context
+                        .securityContextRepository(contextRepository()))
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/sign-out")
-                        .logoutSuccessHandler((request, response, authentication) -> response.setStatus(200))
+                        .logoutSuccessHandler((request, response, authentication) -> response.setStatus(204))
                         .invalidateHttpSession(true)
                         .deleteCookies("SESSION")
                 );
@@ -76,5 +86,21 @@ public class SecurityConfig {
         serializer.setSameSite("Lax");
         serializer.setCookieName("SESSION");
         return serializer;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(PasswordEncoder passwordEncoder,
+                                                       DatabaseUserDetailsService userDetailsService) {
+        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(userDetailsService);
+        authenticationProvider.setPasswordEncoder(passwordEncoder);
+        return new ProviderManager(authenticationProvider);
+    }
+
+    @Bean
+    public SecurityContextRepository contextRepository() {
+        return new DelegatingSecurityContextRepository(
+                new RequestAttributeSecurityContextRepository(),
+                new HttpSessionSecurityContextRepository()
+        );
     }
 }

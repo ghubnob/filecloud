@@ -1,10 +1,11 @@
 package dev.vivim.filecloud.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import dev.vivim.filecloud.dto.annotation.ValidPassword;
+import dev.vivim.filecloud.dto.annotation.ValidUsername;
 
 public record AuthorizationRequest(
-        @NotBlank(message="Username must not be blank!")
+        @ValidUsername
         String username,
 
-        @NotBlank(message="Username must not be blank!")
+        @ValidPassword
         String password) {}

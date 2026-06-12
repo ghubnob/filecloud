@@ -50,7 +50,11 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     testImplementation 'org.testcontainers:testcontainers-junit-jupiter:2.0.0'
     testImplementation 'org.testcontainers:testcontainers-postgresql:2.0.0'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
 
+    // config
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 }
 
 tasks.named('test') {

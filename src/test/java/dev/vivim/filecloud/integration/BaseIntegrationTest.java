@@ -1,11 +1,13 @@
 package dev.vivim.filecloud.integration;
 
 import dev.vivim.filecloud.TestcontainersConfig;
+import dev.vivim.filecloud.minio.s3.S3Properties;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
@@ -46,17 +48,17 @@ public abstract class BaseIntegrationTest {
     @Autowired
     protected S3Client s3Client;
 
-    @Value("${aws.s3.bucket-name}")
-    protected String bucketName;
+    @Autowired
+    protected S3Properties s3properties;
 
     @BeforeAll
     void initMinioBucket() {
         try {
-            s3Client.headBucket(HeadBucketRequest.builder().bucket(bucketName).build());
+            s3Client.headBucket(HeadBucketRequest.builder().bucket(s3properties.bucketName()).build());
         } catch (S3Exception e) {
             if (e.statusCode() == 404) {
-                s3Client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build());
-                log.debug("Test bucket created: {}", bucketName);
+                s3Client.createBucket(CreateBucketRequest.builder().bucket(s3properties.bucketName()).build());
+                log.debug("Test bucket created: {}", s3properties.bucketName());
             } else {
                 throw e;
             }
