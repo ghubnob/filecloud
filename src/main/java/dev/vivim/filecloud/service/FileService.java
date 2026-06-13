@@ -13,9 +13,10 @@ import dev.vivim.filecloud.paths.PathObject;
 import dev.vivim.filecloud.paths.PathResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.event.EventListener;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,6 +26,7 @@ import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -274,7 +276,7 @@ public class FileService {
 
             MediaType media = MediaType.parseMediaType(head.contentType());
 
-            return DownloadContainer.file(out -> {
+            return new DownloadContainer(out -> {
                 try (var obj = s3Client.getObject(GetObjectRequest.builder().bucket(bucketName).key(fullS3Key).build())) {
                     obj.transferTo(out);
                 }
@@ -283,7 +285,7 @@ public class FileService {
         }
 
         ListObjectsV2Response check = s3Client.listObjectsV2(ListObjectsV2Request.builder().bucket(bucketName).prefix(fullS3Key).maxKeys(1).build());
-        if (!check.hasContents()) throw new ResourceNotFoundException("Folder "+path+" not found!");
+        if (!check.hasContents()) throw new ResourceNotFoundException("Folder '"+path+"' not found!");
 
         return DownloadContainer.folder(out -> {
             ListObjectsV2Request listObjectsV2Request = ListObjectsV2Request.builder()
@@ -309,8 +311,7 @@ public class FileService {
             } catch (IOException e) {
                 throw new DownloadException("Error downloading files!");
             }
-        }, fileName+".zip");
-
+        }, fileName);
     }
 
     public PathResponse createDirectory(String path, Integer parentPrefix) {

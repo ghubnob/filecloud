@@ -1,17 +1,12 @@
 package dev.vivim.filecloud.dto;
 
 import org.springframework.http.MediaType;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import java.io.OutputStream;
-import java.util.function.Consumer;
-
-public record DownloadContainer(Consumer<OutputStream> writer,
+public record DownloadContainer(StreamingResponseBody fileStream,
                                 String fileName,
-                                MediaType contentType) {
-    public static DownloadContainer file(Consumer<OutputStream> writer, String fileName, MediaType contentType) {
-        return new DownloadContainer(writer, fileName, contentType);
-    }
-    public static DownloadContainer folder(Consumer<OutputStream> writer, String fileName) {
-        return new DownloadContainer(writer, fileName, MediaType.parseMediaType("application/zip"));
+                                MediaType mediaType) {
+    public static DownloadContainer folder(StreamingResponseBody fileStream, String fileName) {
+        return new DownloadContainer(fileStream, fileName+".zip", MediaType.parseMediaType("application/zip"));
     }
 }
