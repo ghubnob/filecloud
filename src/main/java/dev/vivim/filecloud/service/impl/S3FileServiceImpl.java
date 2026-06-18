@@ -147,12 +147,12 @@ public class S3FileServiceImpl implements FileService {
         String fullS3KeyFrom = pathObjFrom.getFullPath();
         String fullS3KeyTo = pathObjTo.getFullPath();
 
-        String resourceName = pathObjFrom.getLastSegment();
-        String folderName = pathObjFrom.getPrefix();
+        String toResourceName = pathObjTo.getLastSegment();
+        String toFolderName = pathObjTo.getPrefix();
 
         if (pathObjFrom.isDirectory()) {
             if (objectStorage.doesDirectoryExists(fullS3KeyTo))
-                throw new ResourceAlreadyExistsException("Folder '"+resourceName+"' already exists!");
+                throw new ResourceAlreadyExistsException("Folder '"+toResourceName+"' already exists!");
 
             objectStorage.getAllObjectsByPrefix(fullS3KeyFrom).forEach(obj -> {
                     objectStorage.copyResource(obj.key(), fullS3KeyTo + obj.key().substring(fullS3KeyFrom.length()));
@@ -160,22 +160,22 @@ public class S3FileServiceImpl implements FileService {
             });
 
             return new PathResponse(
-                    folderName,
-                    resourceName,
+                    toFolderName,
+                    toResourceName,
                     null,
                     FileType.DIRECTORY);
         }
         else {
-            var fromMetadata = objectStorage.getObjectMetadata(fullS3KeyTo);
+            var fromMetadata = objectStorage.getObjectMetadata(fullS3KeyFrom);
             if (objectStorage.doesObjectExists(fullS3KeyTo))
-                throw new ResourceAlreadyExistsException("File '"+resourceName+"' already exists!");
+                throw new ResourceAlreadyExistsException("File '"+toResourceName+"' already exists!");
 
             objectStorage.copyResource(fullS3KeyFrom, fullS3KeyTo);
             objectStorage.deleteObject(fullS3KeyFrom);
 
             return new PathResponse(
-                    folderName,
-                    resourceName,
+                    toFolderName,
+                    toResourceName,
                     fromMetadata.size(),
                     FileType.FILE);
         }
