@@ -1,5 +1,7 @@
 package dev.vivim.filecloud.paths;
 
+import dev.vivim.filecloud.dto.UserStorageRoot;
+
 public interface PathResolver {
-    PathObject resolve(String path, String parent);
+    PathObject resolve(String path, UserStorageRoot root);
 }

@@ -1,6 +1,6 @@
 package dev.vivim.filecloud.integration;
 
-import dev.vivim.filecloud.dto.RegisterUserRequest;
+import dev.vivim.filecloud.dto.request.RegisterUserRequest;
 import dev.vivim.filecloud.model.User;
 import dev.vivim.filecloud.repository.UserRepository;
 import dev.vivim.filecloud.service.UserService;

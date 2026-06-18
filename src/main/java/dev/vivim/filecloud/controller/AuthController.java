@@ -1,9 +1,9 @@
 package dev.vivim.filecloud.controller;
 
 import dev.vivim.filecloud.controller.api.AuthApi;
-import dev.vivim.filecloud.dto.AuthorizationRequest;
-import dev.vivim.filecloud.dto.RegisterUserRequest;
-import dev.vivim.filecloud.dto.UserResponse;
+import dev.vivim.filecloud.dto.request.AuthorizationRequest;
+import dev.vivim.filecloud.dto.request.RegisterUserRequest;
+import dev.vivim.filecloud.dto.response.UserResponse;
 import dev.vivim.filecloud.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

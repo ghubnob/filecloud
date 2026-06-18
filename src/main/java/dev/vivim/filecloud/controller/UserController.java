@@ -2,7 +2,7 @@ package dev.vivim.filecloud.controller;
 
 import dev.vivim.filecloud.controller.api.UserApi;
 import dev.vivim.filecloud.dto.AuthenticatedUser;
-import dev.vivim.filecloud.dto.UserResponse;
+import dev.vivim.filecloud.dto.response.UserResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.RestController;

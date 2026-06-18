@@ -1,7 +1,7 @@
 package dev.vivim.filecloud.service;
 
-import dev.vivim.filecloud.dto.RegisterUserRequest;
-import dev.vivim.filecloud.dto.UserResponse;
+import dev.vivim.filecloud.dto.request.RegisterUserRequest;
+import dev.vivim.filecloud.dto.response.UserResponse;
 import dev.vivim.filecloud.events.UserRegisteredEvent;
 import dev.vivim.filecloud.exception.UserExistsException;
 import dev.vivim.filecloud.model.User;
@@ -25,7 +25,7 @@ public class UserService {
     public UserResponse register(RegisterUserRequest request) {
         if (userRepository.findByUsername(request.username()).isPresent())
             throw new UserExistsException("Username is already in use!");
-        User saved = userRepository.save(new User(request.username(), passwordEncoder.encode(request.password())));
+        User saved = userRepository.save(User.createOf(request.username(), passwordEncoder.encode(request.password())));
         eventPublisher.publishEvent(new UserRegisteredEvent(saved.getId()));
         return new UserResponse(request.username());
     }

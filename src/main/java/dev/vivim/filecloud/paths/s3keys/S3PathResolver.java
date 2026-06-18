@@ -1,5 +1,6 @@
-package dev.vivim.filecloud.paths.minio;
+package dev.vivim.filecloud.paths.s3keys;
 
+import dev.vivim.filecloud.dto.UserStorageRoot;
 import dev.vivim.filecloud.exception.InvalidPathException;
 import dev.vivim.filecloud.paths.PathObject;
 import dev.vivim.filecloud.paths.PathResolver;
@@ -14,7 +15,7 @@ import java.util.regex.Pattern;
 
 @Slf4j
 @Component
-public class MinIOPathResolver implements PathResolver {
+public class S3PathResolver implements PathResolver {
     private static final Pattern DOT_ONLY = Pattern.compile("^\\.+$");
     private static final int MAX_SIZE_SEGMENT = 200;
     private static final Set<Character> INVALID_CHARS = Set.of(
@@ -22,23 +23,23 @@ public class MinIOPathResolver implements PathResolver {
     );
 
     @Override
-    public PathObject resolve(String path, String username) {
+    public PathObject resolve(String path, UserStorageRoot root) {
         log.debug("[PATH RESOLVER] Resolving path: {}", path);
         if (path==null || path.isBlank()) {
-            log.debug("[PATH RESOLVER] Path resolved successfully (empty): {}/{}", username, path);
-            return new MinIOPathObject(username, path);
+            log.debug("[PATH RESOLVER] Path resolved successfully (empty): {}/{}", root.value(), path);
+            return new S3PathObject(root.value(), path);
         }
         boolean isFolder = path.endsWith("/");
 
         List<String> segments = splitAndValidate(normalize(path));
         if (segments.isEmpty()) {
-            log.debug("[PATH RESOLVER] Path resolved successfully (empty): {}/{}", username, path);
-            return new MinIOPathObject(username, "");
+            log.debug("[PATH RESOLVER] Path resolved successfully (empty): {}/{}", root.value(), path);
+            return new S3PathObject(root.value(), "");
         }
         String relativePath = String.join("/", segments) + (isFolder ? "/" : "");
 
         log.debug("[PATH RESOLVER] Path resolved successfully: {}", relativePath);
-        return new MinIOPathObject(username, relativePath);
+        return new S3PathObject(root.value(), relativePath);
     }
 
     private String normalize(String rawPath) {

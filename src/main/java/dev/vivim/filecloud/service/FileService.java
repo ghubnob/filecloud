@@ -2,7 +2,8 @@ package dev.vivim.filecloud.service;
 
 import dev.vivim.filecloud.dto.DownloadContainer;
 import dev.vivim.filecloud.dto.FileType;
-import dev.vivim.filecloud.dto.PathResponse;
+import dev.vivim.filecloud.dto.UserStorageRoot;
+import dev.vivim.filecloud.dto.response.PathResponse;
 import dev.vivim.filecloud.events.UserRegisteredEvent;
 import dev.vivim.filecloud.exception.DownloadException;
 import dev.vivim.filecloud.exception.FileAlreadyExistsException;
@@ -13,10 +14,7 @@ import dev.vivim.filecloud.paths.PathObject;
 import dev.vivim.filecloud.paths.PathResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,7 +24,6 @@ import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -40,7 +37,7 @@ public class FileService {
     private final PathResolver pathResolver;
 
     public PathResponse getResource(String path, Integer parentPrefix) {
-        PathObject pathObj = pathResolver.resolve(path, parentPrefix.toString());
+        PathObject pathObj = pathResolver.resolve(path, UserStorageRoot.forUser(s3Properties, parentPrefix));
         String fullS3Key = pathObj.getFullPath();
         String resourceName = pathObj.getLastSegment();
         String folderName = pathObj.getPrefix();
@@ -67,7 +64,7 @@ public class FileService {
     }
 
     public List<PathResponse> getDirectory(String path, Integer parentPrefix) {
-        PathObject pathObj = pathResolver.resolve(path, parentPrefix.toString());
+        PathObject pathObj = pathResolver.resolve(path, UserStorageRoot.forUser(s3Properties, parentPrefix));
         String fullS3Key = pathObj.getFullPath();
         String folderName = pathObj.getPrefix()+pathObj.getLastSegment();
 
@@ -96,9 +93,10 @@ public class FileService {
     }
 
     public List<PathResponse> searchResources(String query, Integer parentPrefix) {
+        var root = UserStorageRoot.forUser(s3Properties, parentPrefix);
         List<PathResponse> result = new ArrayList<>();
         Set<PathResponse> folders = new HashSet<>();
-        String fullS3Key = parentPrefix.toString() + "/";
+        String fullS3Key = root.value() + "/";
 
         ListObjectsV2Request listObjectsV2Request = ListObjectsV2Request.builder()
                 .bucket(s3Properties.bucketName()).prefix(fullS3Key).build();
@@ -139,15 +137,17 @@ public class FileService {
     }
 
     public List<PathResponse> uploadResource(String path, Integer parentPrefix, List<MultipartFile> files) throws IOException {
-        PathObject pathObj = pathResolver.resolve(path, parentPrefix.toString());
+        PathObject pathObj = pathResolver.resolve(path, UserStorageRoot.forUser(s3Properties, parentPrefix));
         String s3Key = pathObj.getFullPath();
         String folderName = pathObj.getPrefix()+pathObj.getLastSegment();
+        log.info("[UPLOAD] S3Key: {}, Folder name: {}, Root: {}", s3Key, folderName, UserStorageRoot.forUser(s3Properties, parentPrefix).value());
 
         String bucketName = s3Properties.bucketName();
 
         List<PathResponse> response = new ArrayList<>();
         for (MultipartFile file : files) {
             String currentS3Key = s3Key + (s3Key.endsWith("/") ? "" : "/") + file.getOriginalFilename();
+            log.info("[UPLOAD] Current key: {}", currentS3Key);
 
             try {
                 s3Client.headObject(HeadObjectRequest.builder().bucket(bucketName).key(currentS3Key).build());
@@ -166,8 +166,9 @@ public class FileService {
     }
 
     public PathResponse moveResource(String from, String to, Integer parentPrefix) {
-        PathObject pathObjFrom = pathResolver.resolve(from, parentPrefix.toString());
-        PathObject pathObjTo = pathResolver.resolve(to, parentPrefix.toString());
+        var root = UserStorageRoot.forUser(s3Properties, parentPrefix);
+        PathObject pathObjFrom = pathResolver.resolve(from, root);
+        PathObject pathObjTo = pathResolver.resolve(to, root);
 
         if (pathObjFrom.isDirectory() != pathObjTo.isDirectory())
             throw new InvalidPathException("Invalid path on moving/renaming files!");
@@ -232,7 +233,7 @@ public class FileService {
     }
 
     public void deleteResource(String path, Integer parentPrefix) {
-        PathObject pathObj = pathResolver.resolve(path, parentPrefix.toString());
+        PathObject pathObj = pathResolver.resolve(path, UserStorageRoot.forUser(s3Properties, parentPrefix));
         String fullS3Key = pathObj.getFullPath();
 
         String bucketName = s3Properties.bucketName();
@@ -262,7 +263,7 @@ public class FileService {
     }
 
     public DownloadContainer downloadResource(String path, Integer parentPrefix) {
-        PathObject pathObj = pathResolver.resolve(path, parentPrefix.toString());
+        PathObject pathObj = pathResolver.resolve(path, UserStorageRoot.forUser(s3Properties, parentPrefix));
         String fullS3Key = pathObj.getFullPath();
         String fileName = pathObj.getLastSegment();
 
@@ -315,7 +316,8 @@ public class FileService {
     }
 
     public PathResponse createDirectory(String path, Integer parentPrefix) {
-        PathObject pathObj = pathResolver.resolve(path, parentPrefix.toString());
+        var root = UserStorageRoot.forUser(s3Properties, parentPrefix);
+        PathObject pathObj = pathResolver.resolve(path, root);
         String fullS3Key = pathObj.getFullPath();
         String folderName = pathObj.getLastSegment();
         String parentName = pathObj.getPrefix();
@@ -329,7 +331,7 @@ public class FileService {
         if (!tryResponse.contents().isEmpty()) throw new FileAlreadyExistsException("Directory already exists!");
 
         var parentResponse = s3Client.listObjectsV2(ListObjectsV2Request.builder()
-                .bucket(bucketName).prefix(parentPrefix.toString()+"/"+parentName).maxKeys(1).build());
+                .bucket(bucketName).prefix(root.value()+"/"+parentName).maxKeys(1).build());
         if (parentResponse.contents().isEmpty() && !parentName.isEmpty()) throw new ResourceNotFoundException("Parent directory not exists!");
 
         s3Client.putObject(PutObjectRequest.builder().bucket(bucketName).key(fullS3Key).build(), RequestBody.empty());
@@ -341,6 +343,6 @@ public class FileService {
     @TransactionalEventListener
     public void onUserRegistered(UserRegisteredEvent event) {
         s3Client.putObject(PutObjectRequest.builder().bucket(s3Properties.bucketName())
-                .key(event.userId().toString()+"/").build(), RequestBody.empty());
+                .key(UserStorageRoot.forUser(s3Properties, event.userId()).value()+"/").build(), RequestBody.empty());
     }
 }

@@ -1,14 +1,19 @@
 package dev.vivim.filecloud.exception.handler;
 
-import dev.vivim.filecloud.dto.ErrorResponse;
+import dev.vivim.filecloud.dto.response.ErrorResponse;
 import dev.vivim.filecloud.exception.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
+import java.util.Arrays;
+
+@Slf4j
 @RestControllerAdvice
 public class ExceptionsHandler {
 
@@ -32,11 +37,6 @@ public class ExceptionsHandler {
     public ErrorResponse handleResourceNotFound(ResourceNotFoundException e) { return new ErrorResponse(e.getMessage()); }
 
 
-    @ExceptionHandler(NoSuchKeyException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleNoSuchS3Key(NoSuchKeyException e) { return new ErrorResponse("Resource (S3 key) not found!"); }
-
-
     @ExceptionHandler(FileAlreadyExistsException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleFileAlreadyExists(FileAlreadyExistsException e) { return new ErrorResponse(e.getMessage()); }
@@ -47,10 +47,26 @@ public class ExceptionsHandler {
     public ErrorResponse handleInvalidPath(InvalidPathException e) { return new ErrorResponse(e.getMessage()); }
 
 
+    @ExceptionHandler(DownloadException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorResponse handleFailedDownload(DownloadException e) { return new ErrorResponse(e.getMessage()); }
+
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
-        return new ErrorResponse("Validation failed! " + e.getMessage());
+        return new ErrorResponse(e.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .findFirst()
+                .orElse("Validation failed!"));
+    }
+
+
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorResponse handleUncheckedException(Exception e) {
+        log.error("Unexcepted error", e);
+        return new ErrorResponse("Internal Server Error!");
     }
 
 }

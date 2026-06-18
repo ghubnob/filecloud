@@ -9,5 +9,6 @@ public record S3Properties(
         @NotEmpty String accessKey,
         @NotEmpty String secretKey,
         @NotEmpty String region,
-        @NotEmpty String bucketName
+        @NotEmpty String bucketName,
+        @NotEmpty String userRootDirectory
 ) {}

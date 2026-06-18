@@ -2,10 +2,15 @@ package dev.vivim.filecloud.controller;
 
 import dev.vivim.filecloud.controller.api.ResourceApi;
 import dev.vivim.filecloud.dto.*;
+import dev.vivim.filecloud.dto.request.MoveResourceRequest;
+import dev.vivim.filecloud.dto.request.PathRequest;
+import dev.vivim.filecloud.dto.request.SearchResourceRequest;
+import dev.vivim.filecloud.dto.response.PathResponse;
 import dev.vivim.filecloud.service.FileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
@@ -17,20 +22,21 @@ import java.util.List;
 @RestController
 @Slf4j
 @RequiredArgsConstructor
+@Validated
 public class ResourceController implements ResourceApi {
     private final FileService fileService;
 
     @Override
-    public PathResponse getResource(String path, AuthenticatedUser user) {
-        log.info("Resource Request: {}/{}", user.id(), path);
-        return fileService.getResource(path, user.id());
+    public PathResponse getResource(PathRequest pathReq, AuthenticatedUser user) {
+        log.info("Resource Request. User: {}, Path: {}", user.id(), pathReq);
+        return fileService.getResource(pathReq.path(), user.id());
     }
 
 
     @Override
-    public ResponseEntity<StreamingResponseBody> downloadResource(String path, AuthenticatedUser user) {
-        log.info("Download resource Request: {}/{}", user.id(), path);
-        DownloadContainer container = fileService.downloadResource(path, user.id());
+    public ResponseEntity<StreamingResponseBody> downloadResource(PathRequest pathReq, AuthenticatedUser user) {
+        log.info("Download resource Request. User: {}, Path: {}", user.id(), pathReq.path());
+        DownloadContainer container = fileService.downloadResource(pathReq.path(), user.id());
         return ResponseEntity.ok()
                 .contentType(container.mediaType())
                 .header(HttpHeaders.CONTENT_DISPOSITION,ContentDisposition.attachment().filename(container.fileName(), StandardCharsets.UTF_8).build().toString())
@@ -39,29 +45,29 @@ public class ResourceController implements ResourceApi {
 
 
     @Override
-    public PathResponse moveResource(String from, String to, AuthenticatedUser user) {
-        log.info("Moving resource Request: from {}/{} to {}/{}", user.id(), from, user.id(), to);
-        return fileService.moveResource(from, to, user.id());
+    public PathResponse moveResource(MoveResourceRequest moveReq, AuthenticatedUser user) {
+        log.info("Moving resource Request. From {} to {} for User: {}", moveReq.from(), moveReq.to(), user.id());
+        return fileService.moveResource(moveReq.from(), moveReq.to(), user.id());
     }
 
 
     @Override
-    public void deleteResource(String path, AuthenticatedUser user) {
-        log.info("Delete resource Request: {}/{}", user.id(), path);
-        fileService.deleteResource(path, user.id());
+    public void deleteResource(PathRequest pathReq, AuthenticatedUser user) {
+        log.info("Delete resource Request. User: {}, Path: {}", user.id(), pathReq.path());
+        fileService.deleteResource(pathReq.path(), user.id());
     }
 
 
     @Override
     public List<PathResponse> uploadResource(String path, AuthenticatedUser user, List<MultipartFile> multipartFile) throws IOException {
-        log.info("Upload resource Request: {}/{}, uploading {} files", user.id(), path, multipartFile.size());
+        log.info("Upload resource Request. User: {}, Path: {}. Uploading {} files", user.id(), path, multipartFile.size());
         return fileService.uploadResource(path, user.id(), multipartFile);
     }
 
 
     @Override
-    public List<PathResponse> searchResources(String query, AuthenticatedUser user) {
-        log.info("Search Request: {}. User: {}", query, user.id());
-        return fileService.searchResources(query, user.id());
+    public List<PathResponse> searchResources(SearchResourceRequest searchReq, AuthenticatedUser user) {
+        log.info("Search Request: {}. User: {}", searchReq.query(), user.id());
+        return fileService.searchResources(searchReq.query(), user.id());
     }
 }

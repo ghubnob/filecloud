@@ -1,8 +1,7 @@
 package dev.vivim.filecloud.integration;
 
-import dev.vivim.filecloud.dto.RegisterUserRequest;
+import dev.vivim.filecloud.dto.request.RegisterUserRequest;
 import dev.vivim.filecloud.exception.ResourceNotFoundException;
-import dev.vivim.filecloud.model.User;
 import dev.vivim.filecloud.repository.UserRepository;
 import dev.vivim.filecloud.service.FileService;
 import dev.vivim.filecloud.service.UserService;
@@ -10,7 +9,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
@@ -27,10 +25,11 @@ public class FilesFullTests extends BaseIntegrationTest {
         userService.register(new RegisterUserRequest("testuser", "password"));
         byte[] bytes = new byte[] {'h', 'e', 'l', 'l', 'o'};
         MultipartFile multipartFile = new MockMultipartFile("file", "file.txt", "text/plain", bytes);
-        Integer savedUserId = userRepository.findByUsername("testuser").orElse(new User()).getId();
+        Integer savedUserId = userRepository.findByUsername("testuser")
+                .orElseThrow(() -> new AssertionError("User was not saved!")).getId();
         Assertions.assertNotNull(savedUserId);
         String s3Key = savedUserId.toString()+"/path/file.txt";
-        fileService.uploadResource("path/",1, List.of(multipartFile));
+        fileService.uploadResource("path/",savedUserId, List.of(multipartFile));
         var responseBytes = s3Client.getObject(GetObjectRequest.builder().bucket(s3properties.bucketName()).key(s3Key).build()).readAllBytes();
         Assertions.assertArrayEquals(responseBytes, bytes);
     }

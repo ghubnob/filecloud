@@ -1,11 +1,16 @@
 package dev.vivim.filecloud.controller.api;
 
 import dev.vivim.filecloud.dto.AuthenticatedUser;
-import dev.vivim.filecloud.dto.PathResponse;
+import dev.vivim.filecloud.dto.request.MoveResourceRequest;
+import dev.vivim.filecloud.dto.request.PathRequest;
+import dev.vivim.filecloud.dto.request.SearchResourceRequest;
+import dev.vivim.filecloud.dto.response.PathResponse;
 import dev.vivim.filecloud.dto.annotation.ResourceOperationResponses;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,13 +28,13 @@ public interface ResourceApi {
     @Operation(summary = "Получение информации о ресурсе")
     @ApiResponse(responseCode = "200", description = "Ресурс успешно получен")
     @ResourceOperationResponses
-    PathResponse getResource(@RequestParam String path, @AuthenticationPrincipal AuthenticatedUser user);
+    PathResponse getResource(@Valid PathRequest pathReq, @AuthenticationPrincipal AuthenticatedUser user);
 
     @GetMapping("/download")
     @Operation(summary = "Скачивание ресурса")
     @ApiResponse(responseCode = "200", description = "Ресурс успешно начал скачиваться")
     @ResourceOperationResponses
-    ResponseEntity<StreamingResponseBody> downloadResource(@RequestParam String path,
+    ResponseEntity<StreamingResponseBody> downloadResource(@Valid PathRequest pathReq,
                                                            @AuthenticationPrincipal AuthenticatedUser user);
 
     @GetMapping("/move")
@@ -37,16 +42,15 @@ public interface ResourceApi {
     @ApiResponse(responseCode = "200", description = "Ресурс успешно перемещен")
     @ResourceOperationResponses
     @ApiResponse(responseCode = "409", description = "Ресурс по пути перемещения уже существует")
-    PathResponse moveResource(@RequestParam String from,
-                                     @RequestParam String to,
-                                     @AuthenticationPrincipal AuthenticatedUser user);
+    PathResponse moveResource(@Valid MoveResourceRequest moveReq,
+                              @AuthenticationPrincipal AuthenticatedUser user);
 
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Удаление ресурса")
     @ApiResponse(responseCode = "204", description = "Ресурс успешно удален")
     @ResourceOperationResponses
-    void deleteResource(@RequestParam String path, @AuthenticationPrincipal AuthenticatedUser user);
+    void deleteResource(@Valid PathRequest pathReq, @AuthenticationPrincipal AuthenticatedUser user);
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -64,5 +68,6 @@ public interface ResourceApi {
     @ApiResponse(responseCode = "200", description = "Поиск ресурсов успешно выполнен")
     @ApiResponse(responseCode = "400", description = "Невалидный или отсутствующий поисковый запрос")
     @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
-    List<PathResponse> searchResources(@RequestParam String query, @AuthenticationPrincipal AuthenticatedUser user);
+    List<PathResponse> searchResources(@Valid SearchResourceRequest searchReq,
+                                       @AuthenticationPrincipal AuthenticatedUser user);
 }

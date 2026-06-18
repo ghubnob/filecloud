@@ -1,7 +1,7 @@
 package dev.vivim.filecloud.controller.api;
 
 import dev.vivim.filecloud.dto.AuthenticatedUser;
-import dev.vivim.filecloud.dto.UserResponse;
+import dev.vivim.filecloud.dto.response.UserResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;

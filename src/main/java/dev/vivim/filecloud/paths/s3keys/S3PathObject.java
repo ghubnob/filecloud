@@ -1,14 +1,14 @@
-package dev.vivim.filecloud.paths.minio;
+package dev.vivim.filecloud.paths.s3keys;
 
 import dev.vivim.filecloud.paths.PathObject;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class MinIOPathObject implements PathObject {
+public class S3PathObject implements PathObject {
     private final String rootFolder;
     private final String path;
 
-    public MinIOPathObject(String rootFolder, String path) {
+    public S3PathObject(String rootFolder, String path) {
         this.rootFolder = rootFolder==null ? "" : rootFolder;
         this.path = path==null ? "" : path;
     }

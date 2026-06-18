@@ -1,9 +1,7 @@
-package dev.vivim.filecloud.dto;
+package dev.vivim.filecloud.dto.request;
 
 import dev.vivim.filecloud.dto.annotation.ValidPassword;
 import dev.vivim.filecloud.dto.annotation.ValidUsername;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 
 public record RegisterUserRequest(
         @ValidUsername

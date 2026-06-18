@@ -1,11 +1,13 @@
 package dev.vivim.filecloud.controller.api;
 
 import dev.vivim.filecloud.dto.AuthenticatedUser;
-import dev.vivim.filecloud.dto.PathResponse;
+import dev.vivim.filecloud.dto.response.PathResponse;
+import dev.vivim.filecloud.dto.request.PathRequest;
 import dev.vivim.filecloud.dto.annotation.ResourceOperationResponses;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +21,8 @@ public interface DirectoryApi {
     @Operation(summary = "Получение информации о содержимом папки")
     @ApiResponse(responseCode = "200", description = "Информация о папке успешно получена")
     @ResourceOperationResponses
-    List<PathResponse> getDirectory(@RequestParam String path, @AuthenticationPrincipal AuthenticatedUser user);
+    List<PathResponse> getDirectory(@RequestParam(required = false, defaultValue = "") String path,
+                                    @AuthenticationPrincipal AuthenticatedUser user);
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -27,5 +30,5 @@ public interface DirectoryApi {
     @ApiResponse(responseCode = "201", description = "Пустая папка создана")
     @ResourceOperationResponses
     @ApiResponse(responseCode = "409", description = "Папка уже существует")
-    PathResponse createDirectory(@RequestParam String path, @AuthenticationPrincipal AuthenticatedUser user);
+    PathResponse createDirectory(@Valid PathRequest pathReq, @AuthenticationPrincipal AuthenticatedUser user);
 }

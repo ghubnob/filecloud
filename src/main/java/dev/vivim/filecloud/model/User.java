@@ -2,6 +2,7 @@ package dev.vivim.filecloud.model;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -11,9 +12,10 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "users")
-@FieldDefaults(level = AccessLevel.PRIVATE)
-@NoArgsConstructor
 @Getter
+@FieldDefaults(level = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,9 +27,8 @@ public class User {
     @Column(nullable = false)
     String password;
 
-    public User(String username, String password) {
-        this.username = username;
-        this.password = password;
+    public static User createOf(String username, String password) {
+        return new User(null, username, password);
     }
 
     @Override

@@ -1,6 +1,6 @@
 package dev.vivim.filecloud.module;
 
-import dev.vivim.filecloud.dto.RegisterUserRequest;
+import dev.vivim.filecloud.dto.request.RegisterUserRequest;
 import dev.vivim.filecloud.events.UserRegisteredEvent;
 import dev.vivim.filecloud.exception.UserExistsException;
 import dev.vivim.filecloud.model.User;
