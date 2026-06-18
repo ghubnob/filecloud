@@ -1,9 +1,9 @@
-package dev.vivim.filecloud.paths.s3keys;
+package dev.vivim.filecloud.infrastructure.paths.s3keys;
 
 import dev.vivim.filecloud.dto.UserStorageRoot;
 import dev.vivim.filecloud.exception.InvalidPathException;
-import dev.vivim.filecloud.paths.PathObject;
-import dev.vivim.filecloud.paths.PathResolver;
+import dev.vivim.filecloud.infrastructure.paths.PathObject;
+import dev.vivim.filecloud.infrastructure.paths.PathResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

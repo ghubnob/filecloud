@@ -1,4 +1,4 @@
-package dev.vivim.filecloud.paths;
+package dev.vivim.filecloud.infrastructure.paths;
 
 public interface PathObject {
     String getFullPath();

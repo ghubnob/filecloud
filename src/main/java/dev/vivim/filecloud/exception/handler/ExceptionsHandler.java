@@ -8,10 +8,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.HandlerMethodValidationException;
-import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
-
-import java.util.Arrays;
 
 @Slf4j
 @RestControllerAdvice
@@ -37,9 +33,9 @@ public class ExceptionsHandler {
     public ErrorResponse handleResourceNotFound(ResourceNotFoundException e) { return new ErrorResponse(e.getMessage()); }
 
 
-    @ExceptionHandler(FileAlreadyExistsException.class)
+    @ExceptionHandler(ResourceAlreadyExistsException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ErrorResponse handleFileAlreadyExists(FileAlreadyExistsException e) { return new ErrorResponse(e.getMessage()); }
+    public ErrorResponse handleFileAlreadyExists(ResourceAlreadyExistsException e) { return new ErrorResponse(e.getMessage()); }
 
 
     @ExceptionHandler(InvalidPathException.class)

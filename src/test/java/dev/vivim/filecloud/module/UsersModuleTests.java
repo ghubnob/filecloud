@@ -5,7 +5,7 @@ import dev.vivim.filecloud.events.UserRegisteredEvent;
 import dev.vivim.filecloud.exception.UserExistsException;
 import dev.vivim.filecloud.model.User;
 import dev.vivim.filecloud.repository.UserRepository;
-import dev.vivim.filecloud.service.FileService;
+import dev.vivim.filecloud.service.impl.S3FileServiceImpl;
 import dev.vivim.filecloud.service.UserService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -27,7 +27,8 @@ import static org.mockito.Mockito.*;
 public class UsersModuleTests {
     @Mock UserRepository userRepository;
     @Mock PasswordEncoder passwordEncoder;
-    @Mock FileService fileService;
+    @Mock
+    S3FileServiceImpl s3FileServiceImpl;
     @Mock ApplicationEventPublisher applicationEventPublisher;
     @InjectMocks UserService userService;
 

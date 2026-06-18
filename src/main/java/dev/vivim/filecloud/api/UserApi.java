@@ -1,4 +1,4 @@
-package dev.vivim.filecloud.controller.api;
+package dev.vivim.filecloud.api;
 
 import dev.vivim.filecloud.dto.AuthenticatedUser;
 import dev.vivim.filecloud.dto.response.UserResponse;

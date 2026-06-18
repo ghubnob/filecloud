@@ -1,4 +1,4 @@
-package dev.vivim.filecloud.paths;
+package dev.vivim.filecloud.infrastructure.paths;
 
 import dev.vivim.filecloud.dto.UserStorageRoot;
 

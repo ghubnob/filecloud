@@ -1,4 +1,4 @@
-package dev.vivim.filecloud.controller.api;
+package dev.vivim.filecloud.api;
 
 import dev.vivim.filecloud.dto.request.AuthorizationRequest;
 import dev.vivim.filecloud.dto.request.RegisterUserRequest;

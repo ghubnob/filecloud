@@ -3,7 +3,7 @@ package dev.vivim.filecloud.integration;
 import dev.vivim.filecloud.dto.request.RegisterUserRequest;
 import dev.vivim.filecloud.exception.ResourceNotFoundException;
 import dev.vivim.filecloud.repository.UserRepository;
-import dev.vivim.filecloud.service.FileService;
+import dev.vivim.filecloud.service.impl.S3FileServiceImpl;
 import dev.vivim.filecloud.service.UserService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -18,7 +18,8 @@ import java.util.List;
 public class FilesFullTests extends BaseIntegrationTest {
     @Autowired UserService userService;
     @Autowired UserRepository userRepository;
-    @Autowired FileService fileService;
+    @Autowired
+    S3FileServiceImpl s3FileServiceImpl;
 
     @Test
     void shouldCreateFileInMinio() throws IOException {
@@ -29,7 +30,7 @@ public class FilesFullTests extends BaseIntegrationTest {
                 .orElseThrow(() -> new AssertionError("User was not saved!")).getId();
         Assertions.assertNotNull(savedUserId);
         String s3Key = savedUserId.toString()+"/path/file.txt";
-        fileService.uploadResource("path/",savedUserId, List.of(multipartFile));
+        s3FileServiceImpl.uploadResource("path/",savedUserId, List.of(multipartFile));
         var responseBytes = s3Client.getObject(GetObjectRequest.builder().bucket(s3properties.bucketName()).key(s3Key).build()).readAllBytes();
         Assertions.assertArrayEquals(responseBytes, bytes);
     }
@@ -42,10 +43,10 @@ public class FilesFullTests extends BaseIntegrationTest {
 
         byte[] bytes = new byte[] {'h', 'e', 'l', 'l', 'o'};
         MultipartFile multipartFile = new MockMultipartFile("file", "file.txt", "text/plain", bytes);
-        fileService.uploadResource("path/",user1Prefix, List.of(multipartFile));
+        s3FileServiceImpl.uploadResource("path/",user1Prefix, List.of(multipartFile));
 
         userService.register(new RegisterUserRequest(user2, "password"));
-        Assertions.assertEquals("file.txt", fileService.getResource("path/file.txt", user1Prefix).name());
-        Assertions.assertThrows(ResourceNotFoundException.class, () -> fileService.getResource("path/file.txt", user2Prefix));
+        Assertions.assertEquals("file.txt", s3FileServiceImpl.getResource("path/file.txt", user1Prefix).name());
+        Assertions.assertThrows(ResourceNotFoundException.class, () -> s3FileServiceImpl.getResource("path/file.txt", user2Prefix));
     }
 }

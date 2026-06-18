@@ -1,6 +1,6 @@
 package dev.vivim.filecloud.controller;
 
-import dev.vivim.filecloud.controller.api.UserApi;
+import dev.vivim.filecloud.api.UserApi;
 import dev.vivim.filecloud.dto.AuthenticatedUser;
 import dev.vivim.filecloud.dto.response.UserResponse;
 import lombok.RequiredArgsConstructor;

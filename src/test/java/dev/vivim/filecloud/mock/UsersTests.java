@@ -2,7 +2,7 @@ package dev.vivim.filecloud.mock;
 
 import dev.vivim.filecloud.configuration.SecurityConfig;
 import dev.vivim.filecloud.controller.ResourceController;
-import dev.vivim.filecloud.service.FileService;
+import dev.vivim.filecloud.service.impl.S3FileServiceImpl;
 import dev.vivim.filecloud.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +21,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class UsersTests {
     @Autowired MockMvc mockMvc;
     @MockitoBean UserService userService;
-    @MockitoBean FileService fileService;
+    @MockitoBean
+    S3FileServiceImpl s3FileServiceImpl;
 
     @Test
     @WithAnonymousUser
