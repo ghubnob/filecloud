@@ -10,6 +10,6 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-@Size(min=8,max=30,message="Password must be from 8 to 30 letters!")
-@NotBlank(message="Password must be from 8 to 30 letters!")
+@Size(min=8,max=30,message="Password must be from 8 to 30 characters!")
+@NotBlank(message="Password must be from 8 to 30 characters!")
 public @interface ValidPassword {}

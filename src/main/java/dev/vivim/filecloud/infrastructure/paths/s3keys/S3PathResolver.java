@@ -14,7 +14,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 @Slf4j
-@Component
 public class S3PathResolver implements PathResolver {
     private static final Pattern DOT_ONLY = Pattern.compile("^\\.+$");
     private static final int MAX_SIZE_SEGMENT = 200;

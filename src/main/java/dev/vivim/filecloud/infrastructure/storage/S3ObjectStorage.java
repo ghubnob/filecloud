@@ -1,8 +1,5 @@
 package dev.vivim.filecloud.infrastructure.storage;
 
-import dev.vivim.filecloud.dto.FileType;
-import dev.vivim.filecloud.dto.UserStorageRoot;
-import dev.vivim.filecloud.dto.response.PathResponse;
 import dev.vivim.filecloud.dto.storage.StorageDirectoryContent;
 import dev.vivim.filecloud.dto.storage.StorageFileSummary;
 import dev.vivim.filecloud.dto.storage.StorageObjectMetadata;
@@ -16,13 +13,9 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -59,7 +52,7 @@ public class S3ObjectStorage implements ObjectStorage {
                 .bucket(s3Properties.bucketName()).prefix(s3Key).build();
         var paginator =  s3Client.listObjectsV2Paginator(listObjectsV2Request);
         paginator.forEach(response -> {
-            if(response.hasContents()) return;
+            if(!response.hasContents()) return;
             response.contents().forEach(s3Object -> s3Client.deleteObject(
                     DeleteObjectRequest.builder().bucket(s3Properties.bucketName()).key(s3Object.key()).build()));
         });

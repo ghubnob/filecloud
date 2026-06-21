@@ -61,7 +61,7 @@ public class ExceptionsHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleUncheckedException(Exception e) {
-        log.error("Unexcepted error", e);
+        log.error("Unexpected error", e);
         return new ErrorResponse("Internal Server Error!");
     }
 

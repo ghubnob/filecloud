@@ -121,7 +121,8 @@ public class S3FileServiceImpl implements FileService {
 
         List<PathResponse> response = new ArrayList<>();
         for (MultipartFile file : files) {
-            String currentS3Key = s3Key + (s3Key.endsWith("/") ? "" : "/") + file.getOriginalFilename();
+            PathObject relativeFile = pathResolver.resolve(file.getOriginalFilename(), new UserStorageRoot(""));
+            String currentS3Key = s3Key + (s3Key.endsWith("/") ? "" : "/") + relativeFile.getFullPath();
 
             if (objectStorage.doesObjectExists(currentS3Key))
                 throw new ResourceAlreadyExistsException("File '"+file.getOriginalFilename()+"' already exists!");
@@ -129,7 +130,7 @@ public class S3FileServiceImpl implements FileService {
             try (InputStream is = file.getInputStream()) {
                 objectStorage.putObject(currentS3Key, is, file.getSize(), file.getContentType());
                 log.debug("Gave key '{}' to uploaded file '{}'\n", currentS3Key, file.getOriginalFilename());
-                response.add(new PathResponse(folderName, file.getOriginalFilename(), file.getSize(), FileType.FILE));
+                response.add(new PathResponse(folderName, relativeFile.getLastSegment(), file.getSize(), FileType.FILE));
             }
         }
 
@@ -154,10 +155,20 @@ public class S3FileServiceImpl implements FileService {
             if (objectStorage.doesDirectoryExists(fullS3KeyTo))
                 throw new ResourceAlreadyExistsException("Folder '"+toResourceName+"' already exists!");
 
-            objectStorage.getAllObjectsByPrefix(fullS3KeyFrom).forEach(obj -> {
-                    objectStorage.copyResource(obj.key(), fullS3KeyTo + obj.key().substring(fullS3KeyFrom.length()));
+            List<String> destinationKeys = new ArrayList<>();
+            try {
+                objectStorage.getAllObjectsByPrefix(fullS3KeyFrom).forEach(obj -> {
+                    String sourceKey = obj.key();
+                    String destinationKey = fullS3KeyTo + obj.key().substring(fullS3KeyTo.length());
+                    objectStorage.copyResource(sourceKey, destinationKey);
+                    destinationKeys.add(destinationKey);
+                });
+                objectStorage.getAllObjectsByPrefix(fullS3KeyFrom).forEach(obj -> {
                     objectStorage.deleteObject(obj.key());
-            });
+                });
+            } catch (Exception ignored) {
+                destinationKeys.forEach(objectStorage::deleteObject);
+            }
 
             return new PathResponse(
                     toFolderName,
