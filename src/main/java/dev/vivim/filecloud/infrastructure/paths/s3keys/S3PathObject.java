@@ -1,12 +1,15 @@
 package dev.vivim.filecloud.infrastructure.paths.s3keys;
 
 import dev.vivim.filecloud.infrastructure.paths.PathObject;
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class S3PathObject implements PathObject {
-    private final String rootFolder;
-    private final String path;
+    String rootFolder;
+    String path;
 
     public S3PathObject(String rootFolder, String path) {
         this.rootFolder = rootFolder==null ? "" : rootFolder;

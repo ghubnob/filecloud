@@ -22,6 +22,7 @@ import java.util.List;
 public class S3ObjectStorage implements ObjectStorage {
     S3Client s3Client;
     S3Properties s3Properties;
+
     @Override
     public void putObject(String s3Key, InputStream content, long size, String contentType) {
         s3Client.putObject(b -> b

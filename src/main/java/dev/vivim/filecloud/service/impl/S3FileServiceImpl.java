@@ -17,7 +17,9 @@ import dev.vivim.filecloud.infrastructure.paths.PathObject;
 import dev.vivim.filecloud.infrastructure.paths.PathResolver;
 import dev.vivim.filecloud.service.FileService;
 import dev.vivim.filecloud.util.ZipArchiver;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
@@ -36,12 +38,13 @@ import java.util.zip.ZipOutputStream;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @ConditionalOnProperty(name = "storage.provider", havingValue = "aws")
 public class S3FileServiceImpl implements FileService {
-    private final S3Properties s3Properties;
-    private final PathResolver pathResolver;
-    private final ObjectStorage objectStorage;
-    private final ZipArchiver zipArchiver;
+    S3Properties s3Properties;
+    PathResolver pathResolver;
+    ObjectStorage objectStorage;
+    ZipArchiver zipArchiver;
 
     public PathResponse getResource(String path, Integer parentPrefix) {
         PathObject pathObj = pathResolver.resolve(path, UserStorageRoot.forUser(s3Properties, parentPrefix));
@@ -208,6 +211,7 @@ public class S3FileServiceImpl implements FileService {
         }
     }
 
+    @Override
     public DownloadContainer downloadResource(String path, Integer parentPrefix) {
         PathObject pathObj = pathResolver.resolve(path, UserStorageRoot.forUser(s3Properties, parentPrefix));
         String fullS3Key = pathObj.getFullPath();
@@ -234,6 +238,7 @@ public class S3FileServiceImpl implements FileService {
         return DownloadContainer.folder(out -> zipArchiver.archive(fullS3Key, out), fileName);
     }
 
+    @Override
     public PathResponse createDirectory(String path, Integer parentPrefix) {
         var root = UserStorageRoot.forUser(s3Properties, parentPrefix);
         PathObject pathObj = pathResolver.resolve(path, root);

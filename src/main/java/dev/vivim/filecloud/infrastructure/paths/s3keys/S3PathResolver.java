@@ -5,7 +5,6 @@ import dev.vivim.filecloud.exception.InvalidPathException;
 import dev.vivim.filecloud.infrastructure.paths.PathObject;
 import dev.vivim.filecloud.infrastructure.paths.PathResolver;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
 import java.util.Arrays;

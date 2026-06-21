@@ -1,5 +1,8 @@
 package dev.vivim.filecloud.minio.s3;
 
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,11 +16,10 @@ import java.net.URI;
 
 @Configuration
 @EnableConfigurationProperties(S3Properties.class)
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class S3Config {
-    private final S3Properties s3Properties;
-    public S3Config(S3Properties s3Properties) {
-        this.s3Properties = s3Properties;
-    }
+    S3Properties s3Properties;
     @Bean
     public S3Client s3Client() {
         return S3Client.builder()

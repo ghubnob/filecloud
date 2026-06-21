@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Slf4j
-@RequiredArgsConstructor
 public class UserController implements UserApi {
     @Override
     public UserResponse getMe(AuthenticatedUser user) {

@@ -6,7 +6,9 @@ import dev.vivim.filecloud.events.UserRegisteredEvent;
 import dev.vivim.filecloud.exception.UserExistsException;
 import dev.vivim.filecloud.model.User;
 import dev.vivim.filecloud.repository.UserRepository;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,10 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserService {
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final ApplicationEventPublisher eventPublisher;
+    UserRepository userRepository;
+    PasswordEncoder passwordEncoder;
+    ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public UserResponse register(RegisterUserRequest request) {
