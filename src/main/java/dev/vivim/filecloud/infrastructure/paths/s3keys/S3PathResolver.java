@@ -25,7 +25,7 @@ public class S3PathResolver implements PathResolver {
         log.debug("[PATH RESOLVER] Resolving path: {}", path);
         if (path==null || path.isBlank()) {
             log.debug("[PATH RESOLVER] Path resolved successfully (empty): {}/{}", root.value(), path);
-            return new S3PathObject(root.value(), path);
+            return new S3PathObject(root.value(), "");
         }
         boolean isFolder = path.endsWith("/");
 

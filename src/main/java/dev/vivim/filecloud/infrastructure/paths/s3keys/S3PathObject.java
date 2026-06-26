@@ -36,6 +36,7 @@ public class S3PathObject implements PathObject {
 
     @Override
     public String getLastSegment() {
+        if (getLastSegmentName().isBlank()) return "";
         return isDirectory() ? getLastSegmentName()+"/" : getLastSegmentName();
     }
 

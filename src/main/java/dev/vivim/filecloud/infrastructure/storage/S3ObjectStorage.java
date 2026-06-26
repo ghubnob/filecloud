@@ -73,21 +73,21 @@ public class S3ObjectStorage implements ObjectStorage {
         } catch (NoSuchKeyException ignored) { throw new ResourceNotFoundException("Resource not found"); }
     }
 
-    @Override
-    public StorageDirectoryContent getDirectoryContent(String s3Key) {
-        ListObjectsV2Response response = s3Client.listObjectsV2(b -> b.bucket(s3Properties.bucketName()).prefix(s3Key).delimiter("/"));
-
-        boolean exists = response.hasContents() || response.hasCommonPrefixes();
-        if (!exists) throw new ResourceNotFoundException("Resource not found");
-
-        List<String> prefixes = response.commonPrefixes().stream()
-                .map(CommonPrefix::prefix).toList();
-
-        List<StorageFileSummary> files = response.contents().stream()
-                .map(obj -> new StorageFileSummary(obj.key(), obj.size())).toList();
-
-        return new StorageDirectoryContent(prefixes, files);
-    }
+//    @Override
+//    public StorageDirectoryContent getDirectoryContent(String s3Key) {
+//        ListObjectsV2Response response = s3Client.listObjectsV2(b -> b.bucket(s3Properties.bucketName()).prefix(s3Key).delimiter("/"));
+//
+//        boolean exists = response.hasContents() || response.hasCommonPrefixes();
+//        if (!exists) throw new ResourceNotFoundException("Resource not found");
+//
+//        List<String> prefixes = response.commonPrefixes().stream()
+//                .map(CommonPrefix::prefix).toList();
+//
+//        List<StorageFileSummary> files = response.contents().stream()
+//                .map(obj -> new StorageFileSummary(obj.key(), obj.size())).toList();
+//
+//        return new StorageDirectoryContent(prefixes, files);
+//    }
 
     @Override
     public void createDirectory(String s3Key) {

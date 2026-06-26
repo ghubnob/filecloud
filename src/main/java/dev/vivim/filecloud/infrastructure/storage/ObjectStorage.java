@@ -15,7 +15,6 @@ public interface ObjectStorage {
     void deleteObject(String key);
     void deleteDirectory(String key);
     StorageObjectMetadata getObjectMetadata(String key);
-    StorageDirectoryContent getDirectoryContent(String key);
     void createDirectory(String key);
     List<StorageFileSummary> getAllObjectsByPrefix(String prefix);
     void copyResource(String keyFrom, String keyTo);
