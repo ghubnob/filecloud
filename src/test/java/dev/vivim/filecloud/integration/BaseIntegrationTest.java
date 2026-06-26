@@ -22,7 +22,6 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Transactional
 @Import(TestcontainersConfig.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Slf4j

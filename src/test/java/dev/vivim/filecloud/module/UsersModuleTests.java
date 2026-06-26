@@ -5,7 +5,6 @@ import dev.vivim.filecloud.events.UserRegisteredEvent;
 import dev.vivim.filecloud.exception.UserExistsException;
 import dev.vivim.filecloud.model.User;
 import dev.vivim.filecloud.repository.UserRepository;
-import dev.vivim.filecloud.service.impl.S3FileServiceImpl;
 import dev.vivim.filecloud.service.UserService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -27,8 +26,6 @@ import static org.mockito.Mockito.*;
 public class UsersModuleTests {
     @Mock UserRepository userRepository;
     @Mock PasswordEncoder passwordEncoder;
-    @Mock
-    S3FileServiceImpl s3FileServiceImpl;
     @Mock ApplicationEventPublisher applicationEventPublisher;
     @InjectMocks UserService userService;
 
@@ -37,16 +34,18 @@ public class UsersModuleTests {
 
     @Test
     void shouldCreateUserInDatabase() {
-        User saved = new User("testusername", "testpassword");
+        User saved = User.createOf("testusername", "testpassword");
         ReflectionTestUtils.setField(saved, "id", 1);
 
+        String hashedPassword = "testpassword_hashed";
         when(userRepository.findByUsername("testusername")).thenReturn(Optional.empty());
         when(userRepository.save(any())).thenReturn(saved);
-        when(passwordEncoder.encode(any())).thenReturn("testpassword_hashed");
+        when(passwordEncoder.encode(any())).thenReturn(hashedPassword);
+
         userService.register(new RegisterUserRequest("testusername", "testpassword"));
 
         verify(userRepository, times(1)).save(userCaptor.capture());
-        Assertions.assertEquals("testpassword_hashed", userCaptor.getValue().getPassword());
+        Assertions.assertEquals(hashedPassword, userCaptor.getValue().getPassword());
 
         verify(applicationEventPublisher, times(1)).publishEvent(regEventCaptor.capture());
         Assertions.assertNotNull(regEventCaptor.getValue().userId());
@@ -54,7 +53,8 @@ public class UsersModuleTests {
 
     @Test
     void shouldThrowWhenRegisterExistingUser() {
-        when(userRepository.findByUsername("testusername")).thenReturn(Optional.of(new User()));
+        when(userRepository.findByUsername("testusername"))
+                .thenReturn(Optional.of(User.createOf("testusername", "testpassword")));
         Assertions.assertThrows(UserExistsException.class, () ->
                 userService.register(new RegisterUserRequest("testusername", "testpassword")));
     }

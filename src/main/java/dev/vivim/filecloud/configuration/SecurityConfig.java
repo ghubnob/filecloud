@@ -49,12 +49,7 @@ public class SecurityConfig {
                 .securityContext(context -> context
                         .securityContextRepository(contextRepository()))
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-                .logout(logout -> logout
-                        .logoutUrl("/api/auth/sign-out")
-                        .logoutSuccessHandler((request, response, authentication) -> response.setStatus(204))
-                        .invalidateHttpSession(true)
-                        .deleteCookies("SESSION")
+                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 );
 
         return http.build();

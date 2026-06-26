@@ -62,7 +62,7 @@ public class ExceptionsHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleDataIntegrityViolation(DataIntegrityViolationException e) {
-        return new ErrorResponse("Save user to database failed!");
+        return new ErrorResponse("Database writing failed!");
     }
 
 

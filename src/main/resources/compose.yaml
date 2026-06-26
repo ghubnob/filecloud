@@ -65,7 +65,6 @@ services:
       /bin/sh -c "
       mc alias set localminio http://minio:9000 minioadmin minioadmin;
       mc mb --ignore-existing localminio/user-files;
-      mc anonymous set public localminio/user-files;
       exit 0;
       "
 

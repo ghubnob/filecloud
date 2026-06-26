@@ -48,7 +48,7 @@ public class S3FileServiceImpl implements FileService {
     @Override
     public PathResponse getResource(String path, Integer parentPrefix) {
         PathObject pathObj = pathResolver.resolve(path, UserStorageRoot.forUser(s3Properties, parentPrefix));
-        String resourceName = pathObj.getLastSegment();
+        String resourceName = pathObj.getBareName();
         String folderName = pathObj.getPrefix();
 
         ResourceEntity resource = resourceRepository
@@ -95,53 +95,58 @@ public class S3FileServiceImpl implements FileService {
         PathObject pathObj = pathResolver.resolve(path, UserStorageRoot.forUser(s3Properties, userId));
         String s3Key = pathObj.getFullPath();
         String folderName = pathObj.getPrefix()+pathObj.getLastSegment();
-
         if (!folderName.isBlank() && !folderName.endsWith("/")) folderName += "/";
+
         log.info("[upload] for user {} - prefix: {}, last segment: {}", userId, pathObj.getPrefix(), pathObj.getLastSegment());
         ensureDirectoryMetadata(userId, folderName);
 
         List<PathResponse> response = new ArrayList<>();
-        for (MultipartFile file : files) {
-            String currentFilename = file.getOriginalFilename();
-            if (currentFilename == null || currentFilename.isBlank())
-                throw new InvalidPathException("File name is null!");
-            PathObject relativeFile = pathResolver.resolve(currentFilename, new UserStorageRoot(""));
-            String currentS3Key = s3Key + (s3Key.endsWith("/") ? "" : "/") +
-                    relativeFile.getPrefix() + relativeFile.getLastSegment();
+        List<String> loadedKeys = new ArrayList<>();
+        try {
+            for (MultipartFile file : files) {
+                String currentFilename = file.getOriginalFilename();
+                if (currentFilename == null || currentFilename.isBlank())
+                    throw new InvalidPathException("File name is null!");
 
-            if (objectStorage.doesObjectExists(currentS3Key))
-                throw new ResourceAlreadyExistsException("File '" + currentFilename + "' already exists!");
+                PathObject relativeFile = pathResolver.resolve(currentFilename, new UserStorageRoot(""));
+                String currentS3Key = s3Key + (s3Key.endsWith("/") ? "" : "/") +
+                        relativeFile.getPrefix() + relativeFile.getLastSegment();
 
-            String finalPath = folderName + relativeFile.getPrefix();
-            ensureDirectoryMetadata(userId, finalPath);
-            try (InputStream is = file.getInputStream()) {
-                objectStorage.putObject(currentS3Key, is, file.getSize(), file.getContentType());
-                log.debug("Gave key '{}' to uploaded file '{}'\n", currentS3Key, currentFilename);
-
-                try {
-                    ResourceEntity resource = ResourceEntity.createOf(userId,
-                            finalPath, relativeFile.getLastSegment(),
-                            file.getSize(), FileType.FILE);
-                    resourceRepository.save(resource);
-                } catch (DataIntegrityViolationException de) {
-                    objectStorage.deleteObject(currentS3Key);
+                if (objectStorage.doesObjectExists(currentS3Key))
                     throw new ResourceAlreadyExistsException("File '" + currentFilename + "' already exists!");
-                }
-                catch (Exception e) {
-                    try { objectStorage.deleteObject(currentS3Key); }
-                    catch (Exception cleanup) { log.error("Cleanup failed for key {}", currentS3Key, cleanup); }
-                    throw e;
-                }
 
-                response.add(new PathResponse(finalPath,
-                        relativeFile.getLastSegment(),
-                        file.getSize(),
-                        FileType.FILE));
+                String finalPath = folderName + relativeFile.getPrefix();
+                ensureDirectoryMetadata(userId, finalPath);
 
+                try (InputStream is = file.getInputStream()) {
+                    objectStorage.putObject(currentS3Key, is, file.getSize(), file.getContentType());
+                    loadedKeys.add(currentS3Key);
+                    log.debug("Gave key '{}' to uploaded file '{}'\n", currentS3Key, currentFilename);
+
+                    try {
+                        ResourceEntity resource = ResourceEntity.createOf(userId,
+                                finalPath, relativeFile.getBareName(),
+                                file.getSize(), FileType.FILE);
+                        resourceRepository.save(resource);
+                    } catch (DataIntegrityViolationException de) {
+                        throw new ResourceAlreadyExistsException("File '" + currentFilename + "' already exists!");
+                    }
+
+                    response.add(new PathResponse(finalPath,
+                            relativeFile.getLastSegment(),
+                            file.getSize(),
+                            FileType.FILE));
+
+                }
             }
+            return response;
+        } catch (Exception e) {
+            for (String key : loadedKeys) {
+                try { objectStorage.deleteObject(key); }
+                catch (Exception cleanup) { log.error("[UPLOAD] Cleanup failed for key {}", key, cleanup); }
+            }
+            throw e;
         }
-
-        return response;
     }
 
     @Transactional
@@ -152,121 +157,121 @@ public class S3FileServiceImpl implements FileService {
         PathObject pathObjTo = pathResolver.resolve(to, root);
 
         if (pathObjFrom.isDirectory() != pathObjTo.isDirectory())
-            throw new InvalidPathException("Invalid path on moving/renaming files!");
+            throw new InvalidPathException("Invalid path!");
+
+        String fromName = pathObjFrom.getBareName();
+        String toName = pathObjTo.getBareName();
+        if (fromName.isBlank() || toName.isBlank())
+            throw new InvalidPathException("Invalid path!");
 
         String fullS3KeyFrom = pathObjFrom.getFullPath();
         String fullS3KeyTo = pathObjTo.getFullPath();
 
-        String fromName = pathObjFrom.getLastSegment();
-        String toName = pathObjTo.getLastSegment();
+        return pathObjFrom.isDirectory()
+                ? moveDirectory(root, pathObjFrom, pathObjTo, fromName, toName, fullS3KeyFrom, fullS3KeyTo, userId)
+                : moveFile(pathObjFrom, pathObjTo, fromName, toName, fullS3KeyFrom, fullS3KeyTo, userId);
+    }
 
-        String fromPrefix = pathObjFrom.getPrefix()+fromName + (fromName.endsWith("/") ? "" : "/");
+    private PathResponse moveDirectory(UserStorageRoot root,
+                                       PathObject pathObjFrom, PathObject pathObjTo,
+                                       String fromName, String toName,
+                                       String fullS3KeyFrom, String fullS3KeyTo,
+                                       Integer userId) {
+        if (objectStorage.doesObjectExists(fullS3KeyTo))
+            throw new ResourceAlreadyExistsException("Directory '"+toName+"' already exists!");
 
-        if (pathObjFrom.isDirectory()) {
-            if (objectStorage.doesDirectoryExists(fullS3KeyTo))
-                throw new ResourceAlreadyExistsException("Directory '"+toName+"' already exists!");
+        String fromFolderPath = pathObjFrom.getPrefix() + fromName + "/";
+        String toFolderPath = pathObjTo.getPrefix() + toName + "/";
 
-            List<String> sourceKeys = new ArrayList<>();
-            List<String> copiedKeys = new ArrayList<>();
-            List<ResourceEntity> toSave = new ArrayList<>();
-            List<ResourceEntity> toDelete = new ArrayList<>();
-            try {
-                String fromFolderName = fromName.endsWith("/") ? fromName.substring(0, fromName.length()-1) : fromName;
-                String toFolderName = toName.endsWith("/") ? toName.substring(0, toName.length()-1) : toName;
+        List<String> sourceKeys = new ArrayList<>();
+        List<String> copiedKeys = new ArrayList<>();
+        List<ResourceEntity> toSave = new ArrayList<>();
+        List<ResourceEntity> toDelete = new ArrayList<>();
 
-                ResourceEntity folder = resourceRepository
-                        .findByUserIdAndPathAndName(userId, pathObjFrom.getPrefix(), fromFolderName)
-                        .orElseThrow(() -> new ResourceNotFoundException("Directory '"+fromName+"' not found!"));
+        try {
+            ResourceEntity folder = resourceRepository.findByUserIdAndPathAndName(userId, pathObjFrom.getPrefix(), fromName)
+                    .orElseThrow(() -> new ResourceNotFoundException("Directory '"+fromName+"' not found!"));
 
-                toDelete.add(folder);
-                toSave.add(ResourceEntity.createOf(
-                        folder.getUserId(),
-                        pathObjTo.getPrefix(),
-                        toFolderName,
-                        0L, FileType.DIRECTORY));
+            toDelete.add(folder);
+            toSave.add(ResourceEntity.createOf(folder.getUserId(), pathObjTo.getPrefix(), toName, 0L, FileType.DIRECTORY));
 
-                String fromFolderPath = pathObjFrom.getPrefix() + fromFolderName + "/";
-                String toFolderPath = pathObjTo.getPrefix() + toFolderName + "/";
+            if (objectStorage.doesObjectExists(fullS3KeyFrom)) {
+                objectStorage.copyResource(fullS3KeyFrom, fullS3KeyTo);
+                copiedKeys.add(fullS3KeyTo);
+                sourceKeys.add(fullS3KeyFrom);
+            }
 
-                List<ResourceEntity> resources = resourceRepository.findAllByUserIdAndPathStartingWith(userId, fromPrefix);
-                log.info("[move] for user {} moving {} files from folder {} to folder {}",
-                        userId, resources.size(), fromFolderPath, toFolderPath);
+            List<ResourceEntity> resources = resourceRepository.findAllByUserIdAndPathStartingWith(userId, fromFolderPath);
+            log.info("For user {} move {} files from path {} to path {}", userId, resources.size(), fromFolderPath, toFolderPath);
 
-                resources.forEach(res -> {
-                    String sourceKey = root.value() + "/" + res.getPath() + res.getName();
-                    String newPath = res.getPath().replace(fromFolderPath, toFolderPath);
-                    String destinationKey = root.value() + "/" + newPath + res.getName();
+            resources.forEach(res -> {
+                boolean isDir = res.getResourceType() == FileType.DIRECTORY;
+                String namePart = isDir ? res.getName()+"/" : res.getName();
+                String newPath = res.getPath().replace(fromFolderPath, toFolderPath);
+                String sourceKey = root.value() + "/" + res.getPath() + namePart;
+                String destinationKey = root.value() + "/" + newPath + namePart;
 
+                if (!isDir || objectStorage.doesObjectExists(sourceKey)) {
                     objectStorage.copyResource(sourceKey, destinationKey);
                     copiedKeys.add(destinationKey);
                     sourceKeys.add(sourceKey);
-
-                    toSave.add(ResourceEntity.createOf(res.getUserId(),
-                            newPath,
-                            res.getName(),
-                            res.getSize(),
-                            res.getResourceType()));
-                    toDelete.add(res);
-                });
-                resourceRepository.saveAll(toSave);
-                resourceRepository.deleteAll(toDelete);
-                for (String key : sourceKeys) {
-                    try { objectStorage.deleteObject(key); }
-                    catch (Exception ex) { log.error("Deleting source files while copying failed for key {}", key); throw ex; }
                 }
+                toSave.add(ResourceEntity.createOf(userId, newPath, res.getName(), res.getSize(), res.getResourceType()));
+                toDelete.add(res);
+            });
 
-                return new PathResponse(pathObjTo.getPrefix(), toName, null, FileType.DIRECTORY);
+            resourceRepository.saveAll(toSave);
+            resourceRepository.deleteAll(toDelete);
+
+            for (String key : sourceKeys) {
+                try { objectStorage.deleteObject(key); }
+                catch (Exception ex) { log.error("[MOVE] Cleanup when moving directory error for key {}", key, ex); throw ex; }
             }
-            catch (Exception e) {
-                for (String key : copiedKeys) {
-                    try { objectStorage.deleteObject(key); }
-                    catch (Exception cleanup) { log.error("Cleanup failed on key {}", key, cleanup); }
-                }
-                throw e;
+            return new PathResponse(pathObjTo.getPrefix(), toName+'/', null, FileType.DIRECTORY);
+        } catch (Exception e) {
+            for (String key : copiedKeys) {
+                try { objectStorage.deleteObject(key); }
+                catch (Exception cleanup) { log.error("[MOVE] Cleanup when moving directory error for key {}", key, cleanup); }
             }
+            throw e;
         }
-        else {
-            var fromMetadata = objectStorage.getObjectMetadata(fullS3KeyFrom);
-            if (objectStorage.doesObjectExists(fullS3KeyTo))
-                throw new ResourceAlreadyExistsException("File '"+toName+"' already exists!");
+    }
 
-            var res = resourceRepository.findByUserIdAndPathAndName(userId, pathObjFrom.getPrefix(), fromName)
-                    .orElseThrow(() -> new ResourceNotFoundException("File '"+fromName+"' not found!"));
+    private PathResponse moveFile(PathObject pathObjFrom, PathObject pathObjTo,
+                                  String fromName, String toName,
+                                  String fullS3KeyFrom, String fullS3KeyTo,
+                                  Integer userId) {
+        var fromMetadata = objectStorage.getObjectMetadata(fullS3KeyFrom);
+        if (objectStorage.doesObjectExists(fullS3KeyTo))
+            throw new ResourceAlreadyExistsException("File '"+toName+"' already exists!");
 
-            objectStorage.copyResource(fullS3KeyFrom, fullS3KeyTo);
-            try {
-                resourceRepository.save(ResourceEntity.createOf(res.getUserId(),
-                        pathObjTo.getPrefix(),
-                        toName,
-                        res.getSize(),
-                        res.getResourceType()));
-                resourceRepository.delete(res);
-            } catch (Exception e) {
-                objectStorage.deleteObject(fullS3KeyTo);
-                throw e;
-            }
-            objectStorage.deleteObject(fullS3KeyFrom);
+        var res = resourceRepository.findByUserIdAndPathAndName(userId, pathObjFrom.getPrefix(), fromName)
+                .orElseThrow(() -> new ResourceNotFoundException("File '"+fromName+"' not found!"));
 
-            return new PathResponse(
-                    pathObjTo.getPrefix(),
-                    toName,
-                    fromMetadata.size(),
-                    FileType.FILE);
+        objectStorage.copyResource(fullS3KeyFrom, fullS3KeyTo);
+        try {
+            resourceRepository.save(ResourceEntity.createOf(userId, pathObjTo.getPrefix(), toName, res.getSize(), res.getResourceType()));
+            resourceRepository.delete(res);
+        } catch (Exception e) {
+            objectStorage.deleteObject(fullS3KeyTo);
+            throw e;
         }
+        objectStorage.deleteObject(fullS3KeyFrom);
+        return new PathResponse(pathObjTo.getPrefix(), toName, fromMetadata.size(), FileType.FILE);
     }
 
     @Transactional
     @Override
     public void deleteResource(String path, Integer userId) {
         PathObject pathObj = pathResolver.resolve(path, UserStorageRoot.forUser(s3Properties, userId));
+        if (pathObj.getBareName().isBlank())
+            throw new InvalidPathException("Invalid path!");
         String fullS3Key = pathObj.getFullPath();
         String relativePath = pathObj.getPrefix()+pathObj.getLastSegment();
 
         if (pathObj.isDirectory()) {
             var toDelete = resourceRepository.findAllByUserIdAndPathStartingWith(userId, relativePath);
-            String dirName = pathObj.getLastSegment().endsWith("/")
-                    ? pathObj.getLastSegment().substring(0, pathObj.getLastSegment().length()-1)
-                    : pathObj.getLastSegment();
+            String dirName = pathObj.getBareName();
 
             objectStorage.deleteDirectory(fullS3Key);
             resourceRepository.deleteAll(toDelete);
@@ -315,10 +320,10 @@ public class S3FileServiceImpl implements FileService {
         var root = UserStorageRoot.forUser(s3Properties, parentPrefix);
         PathObject pathObj = pathResolver.resolve(path, root);
         String fullS3Key = pathObj.getFullPath();
-        String folderName = pathObj.getLastSegment();
+        String folderName = pathObj.getBareName();
         String parentName = pathObj.getPrefix();
 
-        if (!pathObj.isDirectory())
+        if (!pathObj.isDirectory() || folderName.isBlank())
             throw new InvalidPathException("Invalid path to new directory!");
 
         if (objectStorage.doesDirectoryExists(fullS3Key))
@@ -329,19 +334,16 @@ public class S3FileServiceImpl implements FileService {
 
         objectStorage.createDirectory(fullS3Key);
         try {
-            String name = folderName.endsWith("/") ? folderName.substring(0, folderName.length()-1) : folderName;
-            resourceRepository.save(ResourceEntity.createOf(parentPrefix, parentName, name, 0L, FileType.DIRECTORY));
-
-            return new PathResponse(parentName, folderName, null, FileType.DIRECTORY);
+            resourceRepository.save(ResourceEntity.createOf(parentPrefix, parentName, folderName, 0L, FileType.DIRECTORY));
+            return new PathResponse(parentName, folderName+"/", null, FileType.DIRECTORY);
         } catch (Exception e) {
-            try {
-                objectStorage.deleteDirectory(fullS3Key);
-            } catch (Exception cleanup) { log.error("Cleanup failed for key {}", fullS3Key, cleanup); }
+            try { objectStorage.deleteDirectory(fullS3Key); }
+            catch (Exception cleanup) { log.error("Cleanup failed for key {}", fullS3Key, cleanup); }
             throw e;
         }
     }
 
-
+    @Override
     @TransactionalEventListener
     public void onUserRegistered(UserRegisteredEvent event) {
         String root = UserStorageRoot.forUser(s3Properties, event.userId()).value()+"/";
@@ -353,7 +355,6 @@ public class S3FileServiceImpl implements FileService {
 
         String normalized = directoryPath;
         if (normalized.startsWith("/")) normalized = normalized.substring(1);
-        if (normalized.endsWith("/")) normalized = normalized.substring(0, normalized.length() - 1);
         if (normalized.isBlank()) return;
         log.info("Ensuring directory metadata for user {}, normalized: {}", userId, normalized);
 

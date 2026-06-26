@@ -32,4 +32,11 @@ public interface AuthApi {
     @ApiResponse(responseCode = "400", description = "Ошибка валидации")
     @ApiResponse(responseCode = "401", description = "Введены неверные данные")
     UserResponse authorization(@Valid @RequestBody AuthorizationRequest request, HttpServletRequest httpReq, HttpServletResponse httpResp);
+
+    @PostMapping("/sign-out")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Лог-аут пользователя")
+    @ApiResponse(responseCode = "204", description = "Пользователь успешно разлогинен")
+    @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
+    void logout(HttpServletRequest httpReq, HttpServletResponse httpResp);
 }

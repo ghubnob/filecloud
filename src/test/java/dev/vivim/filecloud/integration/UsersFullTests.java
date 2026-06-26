@@ -19,12 +19,11 @@ public class UsersFullTests {
     @Autowired private UserRepository userRepository;
 
     @Test
-    void shouldCreateUserWhenRegister() throws InterruptedException {
+    void shouldCreateUserWhenRegister() {
         Assertions.assertDoesNotThrow(
                 () -> userService.register(new RegisterUserRequest("username1","password1"))
         );
 
-        Thread.sleep(3000);
         Optional<User> userOpt = userRepository.findByUsername("username1");
         Assertions.assertTrue(userOpt.isPresent());
         Assertions.assertEquals("username1", userOpt.get().getUsername());

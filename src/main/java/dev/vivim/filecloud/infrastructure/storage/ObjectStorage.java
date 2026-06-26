@@ -1,11 +1,9 @@
 package dev.vivim.filecloud.infrastructure.storage;
 
-import dev.vivim.filecloud.dto.storage.StorageDirectoryContent;
 import dev.vivim.filecloud.dto.storage.StorageFileSummary;
 import dev.vivim.filecloud.dto.storage.StorageObjectMetadata;
 
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.List;
 
 public interface ObjectStorage {

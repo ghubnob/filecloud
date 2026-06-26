@@ -41,6 +41,11 @@ public class S3PathObject implements PathObject {
     }
 
     @Override
+    public String getBareName() {
+        return getLastSegmentName();
+    }
+
+    @Override
     public String getPrefix() {
         String fullPath = this.path;
         if (fullPath.isBlank() || "/".equals(fullPath)) return "";

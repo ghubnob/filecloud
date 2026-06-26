@@ -14,6 +14,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,5 +52,11 @@ public class AuthController implements AuthApi {
         SecurityContextHolder.setContext(context);
 
         contextRepository.saveContext(context, httpReq, httpResp);
+    }
+
+    @Override
+    public void logout(HttpServletRequest httpReq, HttpServletResponse httpResp) {
+        new SecurityContextLogoutHandler().logout(httpReq, httpResp, SecurityContextHolder.getContext().getAuthentication());
+        SecurityContextHolder.clearContext();
     }
 }
