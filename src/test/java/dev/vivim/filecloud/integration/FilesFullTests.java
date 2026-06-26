@@ -60,4 +60,26 @@ public class FilesFullTests extends BaseIntegrationTest {
         Assertions.assertEquals("file.txt", s3FileServiceImpl.getResource("path/file.txt", user1Prefix).name());
         Assertions.assertThrows(ResourceNotFoundException.class, () -> s3FileServiceImpl.getResource("path/file.txt", user2Prefix));
     }
+
+    @Test
+    void shouldRenameAndDeleteFileCorrectly() throws IOException {
+        userService.register(new RegisterUserRequest("testuser", "password"));
+        Integer savedUserId = userRepository.findByUsername("testuser")
+                .orElseThrow(() -> new AssertionError("User was not saved!")).getId();
+        Assertions.assertNotNull(savedUserId);
+
+        byte[] bytes = new byte[] {'h', 'e', 'l', 'l', 'o'};
+        MultipartFile multipartFile = new MockMultipartFile("file", "file.txt", "text/plain", bytes);
+        s3FileServiceImpl.uploadResource("path/",savedUserId, List.of(multipartFile));
+
+        s3FileServiceImpl.moveResource("path/file.txt", "path/file1.txt", savedUserId);
+        Assertions.assertThrows(ResourceNotFoundException.class, () -> s3FileServiceImpl.getResource("path/file.txt", savedUserId));
+
+        String s3Key = UserStorageRoot.forUser(s3properties, savedUserId).value() + "/path/file1.txt";
+        var responseBytes = s3Client.getObject(GetObjectRequest.builder().bucket(s3properties.bucketName()).key(s3Key).build()).readAllBytes();
+        Assertions.assertArrayEquals(responseBytes, bytes);
+
+        s3FileServiceImpl.deleteResource("path/file1.txt", savedUserId);
+        Assertions.assertThrows(ResourceNotFoundException.class, () -> s3FileServiceImpl.getResource("path/file1.txt", savedUserId));
+    }
 }
